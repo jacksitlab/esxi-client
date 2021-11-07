@@ -100,7 +100,7 @@ class EsxiClient:
         url='{}://{}{}'.format(self.scheme, self.host, url)
         headers["Content-Type"]="text/xml"
         headers["Accept="]=": */*"
-        headers["Referer"]="https://10.20.4.89/ui/"
+        headers["Referer"]="{}://{}/ui/".format(self.scheme,self.host)
         headers["Host"]=self.host
         headers["User-Agent"]=USER_AGENT
         headers["SOAPAction"]="urn:vim25/s55741"
