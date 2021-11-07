@@ -2,6 +2,7 @@ import sys
 import argparse
 import urllib3
 import certifi
+import getpass
 from lib.loginResponse import LoginResponse
 from lib.createVmInfoResponse import CreateVmInfoResponse
 from lib.getVmInfoResponse import GetVmInfoResponse
@@ -128,12 +129,16 @@ class EsxiClient:
         else:
             print("command '{}' not yet implemented".format(cmd))
 
+
 parser = argparse.ArgumentParser(description='Esxi http client')
 parser.add_argument('--host', action='store', required=True, type=str, help='hostname or ip address of the esxi server')
 parser.add_argument('--username', action='store', required=True, type=str, help='username')
-parser.add_argument('--password', action='store', required=True, type=str, help='user password')
+parser.add_argument('--password', action='store', required=False, type=str, help='user password')
 parser.add_argument('command', action='store', nargs=1, default=None, choices=["get-list", "test"])
 args = parser.parse_args()
-client = EsxiClient(args.host,args.username,args.password)
+passwd = args.password
+if passwd is None:
+    passwd = getpass.getpass("Please enter password:")
+client = EsxiClient(args.host,args.username,passwd)
 client.runCommand(args.command[0])
 
