@@ -26,7 +26,6 @@ class LoginResponse(BaseXmlResponse):
         self.userAgent = self.getSubTree(innerData,'userAgent').text
         self.callCount = self.getSubTree(innerData,'callCount').text
         self.headers = headers
-        print(self)
 
     def getCookie(self):
         key="Set-Cookie"

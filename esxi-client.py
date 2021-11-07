@@ -1,11 +1,13 @@
+import sys
+import argparse
 import urllib3
 import certifi
 from lib.loginResponse import LoginResponse
 from lib.createVmInfoResponse import CreateVmInfoResponse
-urllib3.disable_warnings()
-import sys
+from lib.getVmInfoResponse import GetVmInfoResponse
 
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36"
+urllib3.disable_warnings()
 
 class EsxiClient:
 
@@ -89,11 +91,9 @@ class EsxiClient:
             '</RetrievePropertiesEx>'+
         '</Body></Envelope>').format(sessionkey)
         response = self.requestRest('POST','/sdk/',payload)
-        return response
-
-    def getToken(self):
-        self.csrfToken = "q7ep2b0cql5rfxuz5514jhyz8i5errjl"
-        pass
+        if response['code']==200:
+            return GetVmInfoResponse(response['content'])
+        return None
 
     def requestRest(self, method, url, data=None, headers=dict()):
         http = urllib3.PoolManager(cert_reqs='CERT_NONE')
@@ -116,10 +116,24 @@ class EsxiClient:
             r = http.request(method, url, body=encoded_data, headers=headers)
         return dict(code=r.status, content = r.data.decode('utf-8'), headers=r.headers)
 
-args = sys.argv
-args.pop(0)
-client = EsxiClient(args[0],args[1],args[2])
-client.login()
-key = client.createGuestInfos()
-data = client.getGuestInfos(key)
-print(data)
+    def runCommand(self, cmd):
+        if cmd == "get-list":
+            self.login()
+            key = self.createGuestInfos()
+            data = self.getGuestInfos(key)
+            print(data)
+        elif cmd == "test":
+            success= self.login()
+            print("Login succeeded" if success else "Login failed")
+        else:
+            print("command '{}' not yet implemented".format(cmd))
+
+parser = argparse.ArgumentParser(description='Esxi http client')
+parser.add_argument('--host', action='store', required=True, type=str, help='hostname or ip address of the esxi server')
+parser.add_argument('--username', action='store', required=True, type=str, help='username')
+parser.add_argument('--password', action='store', required=True, type=str, help='user password')
+parser.add_argument('command', action='store', nargs=1, default=None, choices=["get-list", "test"])
+args = parser.parse_args()
+client = EsxiClient(args.host,args.username,args.password)
+client.runCommand(args.command[0])
+

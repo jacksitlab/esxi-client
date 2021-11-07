@@ -13,5 +13,4 @@ class CreateVmInfoResponse(BaseXmlResponse):
             raise ValueError('no know response data found')
         
         self.sessionKey = innerData.text
-        print(self)
 

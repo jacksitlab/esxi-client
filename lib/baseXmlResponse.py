@@ -12,3 +12,21 @@ class BaseXmlResponse:
             if child.tag.endswith(tagName):
                 return child
         return None
+
+    def getSubTrees(self, root, tagName):
+        if root is None:
+            return None
+        s=[]
+        for child in root:
+            if child.tag.endswith(tagName):
+                s.append(child)
+        return s
+
+    def getChildwithAttr(self, root, tagName, attributeKey, attributeValue):
+        if root is None:
+            return None
+        for child in root:
+            if child.tag.endswith(tagName):
+                if attributeKey in child.attrib and child.attrib[attributeKey]==attributeValue:
+                    return child
+        return None
