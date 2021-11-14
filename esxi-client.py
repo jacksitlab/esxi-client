@@ -1,11 +1,12 @@
-import sys
 import argparse
 import urllib3
-import certifi
 import getpass
+import json
+import yaml
 from lib.loginResponse import LoginResponse
 from lib.createVmInfoResponse import CreateVmInfoResponse
 from lib.getVmInfoResponse import GetVmInfoResponse
+from lib.getHostInfoResponse import GetHostInfoResponse
 
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36"
 urllib3.disable_warnings()
@@ -96,6 +97,41 @@ class EsxiClient:
             return GetVmInfoResponse(response['content'])
         return None
 
+    def getHostInfos(self, sessionkey):
+        payload = ('<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'+
+            '<Header>'+
+                '<operationID>esxui-e76</operationID>'+
+            '</Header>'+
+            '<Body>'+
+                '<RetrievePropertiesEx xmlns="urn:vim25">'+
+                    '<_this type="PropertyCollector">ha-property-collector</_this>'+
+                    '<specSet>'+
+                        '<propSet>'+
+                            '<type>HostSystem</type>'+
+                            '<all>false</all>'+
+                            '<pathSet>summary.hardware</pathSet>'+
+                        '</propSet>'+
+                        '<objectSet>'+
+                            '<obj type="ContainerView">{}</obj>'+
+                            '<skip>true</skip>'+
+                            '<selectSet xsi:type="TraversalSpec">'+
+                                '<name>view</name>'+
+                                '<type>ContainerView</type>'+
+                                '<path>view</path>'+
+                                '<skip>false</skip>'+
+                            '</selectSet>'+
+                        '</objectSet>'+
+                    '</specSet>'+
+                    '<options/>'+
+                '</RetrievePropertiesEx>'+
+            '</Body>'+
+        '</Envelope>').format(sessionkey)
+        response = self.requestRest('POST','/sdk/',payload)
+        if response['code']==200:
+            return GetHostInfoResponse(response['content'])
+        return None
+
+
     def requestRest(self, method, url, data=None, headers=dict()):
         http = urllib3.PoolManager(cert_reqs='CERT_NONE')
         url='{}://{}{}'.format(self.scheme, self.host, url)
@@ -117,28 +153,40 @@ class EsxiClient:
             r = http.request(method, url, body=encoded_data, headers=headers)
         return dict(code=r.status, content = r.data.decode('utf-8'), headers=r.headers)
 
-    def runCommand(self, cmd):
+    def runCommand(self, cmd, of):
         if cmd == "get-list":
             self.login()
             key = self.createGuestInfos()
             data = self.getGuestInfos(key)
-            print(data)
+            #data = self.getHostInfos(key)
+            self.printData(data, of)
         elif cmd == "test":
             success= self.login()
-            print("Login succeeded" if success else "Login failed")
+            msg="Login succeeded" if success else "Login failed"
+            self.printData(dict(msg=msg), of)
         else:
-            print("command '{}' not yet implemented".format(cmd))
+            self.printData(dict(msg="command '{}' not yet implemented".format(cmd)), of)
 
+    def printData(self, data, of):
+        if of == "json":
+            print(json.dumps(data.toDict()))
+        elif of == "yaml":
+            print(yaml.dump(data.toDict()))
+        elif of == "str":
+            print(str(data))
+        else:
+            print("unknown outputformat {}".format(of))
 
 parser = argparse.ArgumentParser(description='Esxi http client')
 parser.add_argument('--host', action='store', required=True, type=str, help='hostname or ip address of the esxi server')
 parser.add_argument('--username', action='store', required=True, type=str, help='username')
 parser.add_argument('--password', action='store', required=False, type=str, help='user password')
+parser.add_argument('--output-format', action='store', required=False, type=str, help='select an output format',default="str", choices=["json", "yaml", "str"])
 parser.add_argument('command', action='store', nargs=1, default=None, choices=["get-list", "test"])
 args = parser.parse_args()
 passwd = args.password
 if passwd is None:
     passwd = getpass.getpass("Please enter password:")
 client = EsxiClient(args.host,args.username,passwd)
-client.runCommand(args.command[0])
+client.runCommand(args.command[0], args.output_format)
 

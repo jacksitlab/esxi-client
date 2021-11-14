@@ -1,12 +1,15 @@
 import xml.etree.ElementTree as ET
 from .baseXmlResponse import BaseXmlResponse
+from .baseVmWareXmlResponse import BaseVmWareXmlResponse
 
-
-class GuestVmInfo(BaseXmlResponse):
+class GuestVmInfo(BaseVmWareXmlResponse):
 
     def __str__(self):
         return "GuestVmInfo[vmId={} name={} os={} mem={} vCores={} hdd={} ipAddresses={} state={}]".format(self.vmId, 
             self.name, self.os, self.memory, self.cps*self.cpu, self.hdd, self.ipAddresses, self.powerState)
+    def toDict(self):
+        return dict(id=self.vmId, name=self.name, os=self.os, memory=self.memory, vCPUs=self.cps*self.cpu, 
+            hdd=self.hdd, ipAddresses=self.ipAddresses, state=self.powerState)
 
     def __init__(self, xmlRoot):
         self.vmId = self.getChildwithAttr(xmlRoot,'obj','type','VirtualMachine').text
@@ -23,6 +26,7 @@ class GuestVmInfo(BaseXmlResponse):
 
     def getPowerState(self, details):
         return self.getSubTree(details,'guestState').text
+
     def getIpAddresses(self, details):
         adr=[]
         tmp = self.getSubTrees(self.getSubTree(details,'net'),'ipAddress')
@@ -35,23 +39,7 @@ class GuestVmInfo(BaseXmlResponse):
         tmp=self.getSubTree(self.findPropertySetValue(xmlRoot, 'summary.storage', False),'committed')
         return int(tmp.text) if tmp is not None else 0
 
-    def findPropertySet(self, root, name):
-        sets = self.getSubTrees(root,'propSet')
-        for set in sets:
-            nameElem = self.getSubTree(set,'name')
-            if nameElem is not None and nameElem.text == name:
-                return set
-        return None
 
-    def findPropertySetValue(self, root, name, toString=True):
-        set = self.findPropertySet(root, name)
-        if set is not None:
-            val = self.getSubTree(set,'val')
-            if toString:
-                return val.text if val is not None  else None
-            else:
-                return val
-        return None
 
 class GetVmInfoResponse(BaseXmlResponse):
 
@@ -60,6 +48,12 @@ class GetVmInfoResponse(BaseXmlResponse):
         for g in self.guests:
             s.append("{}".format(g))
         return ('GetVmInfoResponse[guests={}]').format(s)
+    def toDict(self):
+        root = dict()
+        root['guests']=[]
+        for guest in self.guests:
+            root['guests'].append(guest.toDict())
+        return root
     def __init__(self, response):
         data = ET.fromstring(response)
         innerData = self.getSubTreeByTree(

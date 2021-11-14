@@ -18,9 +18,18 @@ $ pip3 install -r requirements.txt
 ## usage
 
 ```
-$ python3 esxi-client.py --host your-host-ip --user your-user-or-root [--password your-password] get-list
-```
+$ python3 esxi-client.py params command
 
+params:
+  * --host your-host-ip 
+  * --user your-user-or-root 
+  * --password your-password(otional) - if not given it will be asked for
+  * --output-format (json|yaml|str) (optional| default=str)
+
+commands:
+  * test
+  * get-list
+```
 if password is not given it will be asked for.
 
 ## License
