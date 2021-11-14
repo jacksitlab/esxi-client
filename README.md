@@ -23,12 +23,14 @@ $ python3 esxi-client.py params command
 params:
   * --host your-host-ip 
   * --user your-user-or-root 
-  * --password your-password(otional) - if not given it will be asked for
+  * --password your-password(otional)
   * --output-format (json|yaml|str) (optional| default=str)
 
 commands:
   * test
-  * get-list
+  * get-all
+  * get-host
+  * get-guests
 ```
 if password is not given it will be asked for.
 
