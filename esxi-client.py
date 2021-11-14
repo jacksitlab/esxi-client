@@ -8,6 +8,7 @@ from lib.createVmInfoResponse import CreateVmInfoResponse
 from lib.getVmInfoResponse import GetVmInfoResponse
 from lib.getHostInfoResponse import GetHostInfoResponse
 from lib.summaryData import SummaryData
+from lib.esxiRequests import EsxiRequests
 
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36"
 urllib3.disable_warnings()
@@ -26,8 +27,7 @@ class EsxiClient:
         self.loginData = None
 
     def login(self):
-        payload='<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Header><operationID>{}</operationID></Header><Body><Login xmlns="urn:vim25"><_this type="SessionManager">ha-sessionmgr</_this><userName>{}</userName><password>{}</password><locale>en-US</locale></Login></Body></Envelope>'.format('esxui-4863',self.credentials['username'],self.credentials['password'])
-        response = self.requestRest('POST','/sdk/',payload)
+        response = self.requestRest('POST','/sdk/',EsxiRequests.Login(self.credentials['username'],self.credentials['password']))
 #        print(response)
         if response["code"] == 200:
             self.loginData = LoginResponse(response['content'],response['headers'])
@@ -36,122 +36,27 @@ class EsxiClient:
             return False
 
     def createGuestInfos(self):
-        payload = ('<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'+
-            '<Header>'+
-                '<operationID>esxui-8cc9</operationID>'+
-            '</Header>'+
-            '<Body>'+
-                '<CreateContainerView xmlns="urn:vim25">'+
-                    '<_this type="ViewManager">ViewManager</_this>'+
-                    '<container type="Folder">ha-folder-root</container>'+
-                    '<type>VirtualMachine</type>'+
-                    '<recursive>true</recursive>'+
-                '</CreateContainerView>'+
-            '</Body></Envelope>')
-        response = self.requestRest('POST', '/sdk/',payload)
+        response = self.requestRest('POST', '/sdk/',EsxiRequests.CreateGuestInfos())
         if response['code'] == 200:
             data = CreateVmInfoResponse(response['content'])
             return data.sessionKey
         return None
 
     def createHostInfos(self):
-        payload = ('<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" '+
-            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'+
-            '<Header>'+
-                '<operationID>esxui-ef7</operationID>'+
-            '</Header>'+
-            '<Body>'+
-                '<CreateContainerView xmlns="urn:vim25">'+
-                    '<_this type="ViewManager">ViewManager</_this>'+
-                    '<container type="Folder">ha-folder-root</container>'+
-                    '<type>HostSystem</type>'+
-                    '<recursive>true</recursive>'+
-                '</CreateContainerView>'+
-            '</Body></Envelope>')
-        response = self.requestRest('POST', '/sdk/',payload)
+        response = self.requestRest('POST', '/sdk/',EsxiRequests.CreateHostInfos())
         if response['code'] == 200:
             data = CreateVmInfoResponse(response['content'])
             return data.sessionKey
         return None
 
     def getGuestInfos(self, sessionkey):
-        payload = ('<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
-            '<Header><operationID>esxui-f633</operationID></Header>' +
-            '<Body>'+
-                '<RetrievePropertiesEx xmlns="urn:vim25">'+
-                    '<_this type="PropertyCollector">ha-property-collector</_this>'+
-                    '<specSet>'+
-                        '<propSet>'+
-                            '<type>VirtualMachine</type>'+
-                            '<all>false</all>'+
-                            '<pathSet>name</pathSet>'+
-                            '<pathSet>config.annotation</pathSet>'+
-                            '<pathSet>config.defaultPowerOps</pathSet>'+
-                            '<pathSet>config.extraConfig</pathSet>'+
-                            '<pathSet>config.hardware.memoryMB</pathSet>'+
-                            '<pathSet>config.hardware.numCPU</pathSet>'+
-                            '<pathSet>config.hardware.numCoresPerSocket</pathSet>'+
-                            '<pathSet>config.guestId</pathSet>'+
-                            '<pathSet>config.guestFullName</pathSet>'+
-                            '<pathSet>config.version</pathSet>'+
-                            '<pathSet>config.template</pathSet>'+
-                            '<pathSet>datastore</pathSet>'+
-                            '<pathSet>guest</pathSet>'+
-                            '<pathSet>runtime</pathSet>'+
-                            '<pathSet>summary.storage</pathSet>'+
-                            '<pathSet>summary.runtime</pathSet>'+
-                            '<pathSet>summary.quickStats</pathSet>'+
-                            '<pathSet>effectiveRole</pathSet>'+
-                        '</propSet>'+
-                        '<objectSet>'+
-                        '<obj type="ContainerView">{}</obj>'+
-                        '<skip>true</skip>'+
-                        '<selectSet xsi:type="TraversalSpec">'+
-                            '<name>view</name>'+
-                            '<type>ContainerView</type>'+
-                            '<path>view</path>'+
-                            '<skip>false</skip>'+
-                        '</selectSet>'+
-                    '</objectSet>'+
-                '</specSet>'+
-                '<options/>'+
-            '</RetrievePropertiesEx>'+
-        '</Body></Envelope>').format(sessionkey)
-        response = self.requestRest('POST','/sdk/',payload)
+        response = self.requestRest('POST','/sdk/',EsxiRequests.RequestGuestInfos(sessionkey))
         if response['code']==200:
             return GetVmInfoResponse(response['content'])
         return None
 
     def getHostInfos(self, sessionkey):
-        payload = ('<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'+
-            '<Header>'+
-                '<operationID>esxui-e76</operationID>'+
-            '</Header>'+
-            '<Body>'+
-                '<RetrievePropertiesEx xmlns="urn:vim25">'+
-                    '<_this type="PropertyCollector">ha-property-collector</_this>'+
-                    '<specSet>'+
-                        '<propSet>'+
-                            '<type>HostSystem</type>'+
-                            '<all>false</all>'+
-                            '<pathSet>summary.hardware</pathSet>'+
-                        '</propSet>'+
-                        '<objectSet>'+
-                            '<obj type="ContainerView">{}</obj>'+
-                            '<skip>true</skip>'+
-                            '<selectSet xsi:type="TraversalSpec">'+
-                                '<name>view</name>'+
-                                '<type>ContainerView</type>'+
-                                '<path>view</path>'+
-                                '<skip>false</skip>'+
-                            '</selectSet>'+
-                        '</objectSet>'+
-                    '</specSet>'+
-                    '<options/>'+
-                '</RetrievePropertiesEx>'+
-            '</Body>'+
-        '</Envelope>').format(sessionkey)
-        response = self.requestRest('POST','/sdk/',payload)
+        response = self.requestRest('POST','/sdk/',EsxiRequests.RequestHostInfos(sessionkey))
         if response['code']==200:
             return GetHostInfoResponse(response['content'])
         return None
