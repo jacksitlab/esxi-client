@@ -7,9 +7,14 @@ from lib.loginResponse import LoginResponse
 from lib.createVmInfoResponse import CreateVmInfoResponse
 from lib.getVmInfoResponse import GetVmInfoResponse
 from lib.getHostInfoResponse import GetHostInfoResponse
+from lib.summaryData import SummaryData
 
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36"
 urllib3.disable_warnings()
+COMMAND_GET_HOSTINFOS="get-host"
+COMMAND_GET_GUESTINFOS="get-guests"
+COMMAND_GET_ALLINFOS="get-all"
+COMMAND_TEST_CONNECTION="test"
 
 class EsxiClient:
 
@@ -40,6 +45,26 @@ class EsxiClient:
                     '<_this type="ViewManager">ViewManager</_this>'+
                     '<container type="Folder">ha-folder-root</container>'+
                     '<type>VirtualMachine</type>'+
+                    '<recursive>true</recursive>'+
+                '</CreateContainerView>'+
+            '</Body></Envelope>')
+        response = self.requestRest('POST', '/sdk/',payload)
+        if response['code'] == 200:
+            data = CreateVmInfoResponse(response['content'])
+            return data.sessionKey
+        return None
+
+    def createHostInfos(self):
+        payload = ('<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" '+
+            'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">'+
+            '<Header>'+
+                '<operationID>esxui-ef7</operationID>'+
+            '</Header>'+
+            '<Body>'+
+                '<CreateContainerView xmlns="urn:vim25">'+
+                    '<_this type="ViewManager">ViewManager</_this>'+
+                    '<container type="Folder">ha-folder-root</container>'+
+                    '<type>HostSystem</type>'+
                     '<recursive>true</recursive>'+
                 '</CreateContainerView>'+
             '</Body></Envelope>')
@@ -154,13 +179,25 @@ class EsxiClient:
         return dict(code=r.status, content = r.data.decode('utf-8'), headers=r.headers)
 
     def runCommand(self, cmd, of):
-        if cmd == "get-list":
+        if cmd == COMMAND_GET_GUESTINFOS:
             self.login()
             key = self.createGuestInfos()
             data = self.getGuestInfos(key)
-            #data = self.getHostInfos(key)
             self.printData(data, of)
-        elif cmd == "test":
+        elif cmd == COMMAND_GET_HOSTINFOS:
+            self.login()
+            key = self.createHostInfos()
+            data = self.getHostInfos(key)
+            self.printData(data, of)
+        elif cmd == COMMAND_GET_ALLINFOS:
+            self.login()
+            key = self.createGuestInfos()
+            data=SummaryData()
+            data.setGuests(self.getGuestInfos(key))
+            key = self.createHostInfos()
+            data.setHost(self.getHostInfos(key))
+            self.printData(data, of)
+        elif cmd == COMMAND_TEST_CONNECTION:
             success= self.login()
             msg="Login succeeded" if success else "Login failed"
             self.printData(dict(msg=msg), of)
@@ -182,7 +219,7 @@ parser.add_argument('--host', action='store', required=True, type=str, help='hos
 parser.add_argument('--username', action='store', required=True, type=str, help='username')
 parser.add_argument('--password', action='store', required=False, type=str, help='user password')
 parser.add_argument('--output-format', action='store', required=False, type=str, help='select an output format',default="str", choices=["json", "yaml", "str"])
-parser.add_argument('command', action='store', nargs=1, default=None, choices=["get-list", "test"])
+parser.add_argument('command', action='store', nargs=1, default=None, choices=[COMMAND_GET_ALLINFOS, COMMAND_GET_HOSTINFOS, COMMAND_GET_GUESTINFOS, COMMAND_TEST_CONNECTION])
 args = parser.parse_args()
 passwd = args.password
 if passwd is None:
