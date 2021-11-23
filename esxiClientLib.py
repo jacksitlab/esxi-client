@@ -1,8 +1,4 @@
-import argparse
 import urllib3
-import getpass
-import json
-import yaml
 from lib.loginResponse import LoginResponse
 from lib.createVmInfoResponse import CreateVmInfoResponse
 from lib.getVmInfoResponse import GetVmInfoResponse
@@ -21,7 +17,7 @@ class EsxiClient:
         self.port = port
         self.loginData = None
 
-    def login(self):
+    def _login(self):
         response = self.requestRest('POST','/sdk/',EsxiRequests.Login(self.credentials['username'],self.credentials['password']))
 #        print(response)
         if response["code"] == 200:
@@ -30,27 +26,27 @@ class EsxiClient:
         else:
             return False
 
-    def createGuestInfos(self):
+    def _createGuestInfos(self):
         response = self.requestRest('POST', '/sdk/',EsxiRequests.CreateGuestInfos())
         if response['code'] == 200:
             data = CreateVmInfoResponse(response['content'])
             return data.sessionKey
         return None
 
-    def createHostInfos(self):
+    def _createHostInfos(self):
         response = self.requestRest('POST', '/sdk/',EsxiRequests.CreateHostInfos())
         if response['code'] == 200:
             data = CreateVmInfoResponse(response['content'])
             return data.sessionKey
         return None
 
-    def getGuestInfos(self, sessionkey):
+    def _getGuestInfos(self, sessionkey):
         response = self.requestRest('POST','/sdk/',EsxiRequests.RequestGuestInfos(sessionkey))
         if response['code']==200:
             return GetVmInfoResponse(response['content'])
         return None
 
-    def getHostInfos(self, sessionkey):
+    def _getHostInfos(self, sessionkey):
         response = self.requestRest('POST','/sdk/',EsxiRequests.RequestHostInfos(sessionkey))
         if response['code']==200:
             return GetHostInfoResponse(response['content'])
@@ -79,27 +75,28 @@ class EsxiClient:
         return dict(code=r.status, content = r.data.decode('utf-8'), headers=r.headers)
 
     def getGuestInfos(self):
-        self.login()
-        key = self.createGuestInfos()
-        data = self.getGuestInfos(key)
-        return data.toDict()
+        self._login()
+        key = self._createGuestInfos()
+        data = self._getGuestInfos(key)
+        return data
 
     def getHostInfos(self):
-        self.login()
-        key = self.createHostInfos()
-        data = self.getHostInfos(key)
-        return data.toDict()
+        self._login()
+        key = self._createHostInfos()
+        data = self._getHostInfos(key)
+        return data
+    
     def getAllInfos(self):
-        self.login()
-        key = self.createGuestInfos()
+        self._login()
+        key = self._createGuestInfos()
         data=SummaryData()
-        data.setGuests(self.getGuestInfos(key))
-        key = self.createHostInfos()
-        data.setHost(self.getHostInfos(key))
-        return data.toDict()
+        data.setGuests(self._getGuestInfos(key))
+        key = self._createHostInfos()
+        data.setHost(self._getHostInfos(key))
+        return data
 
     def testConnection(self):
-        success= self.login()
+        success= self._login()
         msg="Login succeeded" if success else "Login failed"
         return dict(success=success, msg=msg)
 
