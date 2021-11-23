@@ -5,11 +5,11 @@ from .baseVmWareXmlResponse import BaseVmWareXmlResponse
 class GuestVmInfo(BaseVmWareXmlResponse):
 
     def __str__(self):
-        return "GuestVmInfo[vmId={} name={} os={} mem={} vCores={} hdd={} ipAddresses={} state={}]".format(self.vmId, 
-            self.name, self.os, self.memory, self.cps*self.cpu, self.hdd, self.ipAddresses, self.powerState)
+        return "GuestVmInfo[vmId={} name={} os={} mem={} vCores={} hdd={} ipAddresses={} state={} comment='{}']".format(self.vmId, 
+            self.name, self.os, self.memory, self.cps*self.cpu, self.hdd, self.ipAddresses, self.powerState, self.comment)
     def toDict(self):
         return dict(id=self.vmId, name=self.name, os=self.os, memory=self.memory, vCPUs=self.cps*self.cpu, 
-            hdd=self.hdd, ipAddresses=self.ipAddresses, state=self.powerState)
+            hdd=self.hdd, ipAddresses=self.ipAddresses, state=self.powerState, comment=self.comment)
 
     def __init__(self, xmlRoot):
         self.vmId = self.getChildwithAttr(xmlRoot,'obj','type','VirtualMachine').text
@@ -23,6 +23,7 @@ class GuestVmInfo(BaseVmWareXmlResponse):
         self.memory = self.findPropertySetValue(xmlRoot, 'config.hardware.memoryMB')
         self.cpu = int(self.findPropertySetValue(xmlRoot, 'config.hardware.numCPU'))
         self.cps = int(self.findPropertySetValue(xmlRoot, 'config.hardware.numCoresPerSocket'))
+        self.comment = self.findPropertySetValue(xmlRoot, 'config.annotation')
 
     def getPowerState(self, details):
         return self.getSubTree(details,'guestState').text

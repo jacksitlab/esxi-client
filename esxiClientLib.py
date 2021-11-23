@@ -1,10 +1,10 @@
 import urllib3
-from lib.loginResponse import LoginResponse
-from lib.createVmInfoResponse import CreateVmInfoResponse
-from lib.getVmInfoResponse import GetVmInfoResponse
-from lib.getHostInfoResponse import GetHostInfoResponse
-from lib.summaryData import SummaryData
-from lib.esxiRequests import EsxiRequests
+from .lib.loginResponse import LoginResponse
+from .lib.createVmInfoResponse import CreateVmInfoResponse
+from .lib.getVmInfoResponse import GetVmInfoResponse
+from .lib.getHostInfoResponse import GetHostInfoResponse
+from .lib.summaryData import SummaryData
+from .lib.esxiRequests import EsxiRequests
 
 USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.114 Safari/537.36"
 urllib3.disable_warnings()
